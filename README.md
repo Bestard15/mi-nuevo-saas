@@ -49,7 +49,7 @@ src/
 ## Roadmap del MVP
 
 - [x] **Fase 0** — Scaffold, esquema multi-tenant, Auth.js
-- [ ] **Fase 1** — Core del board: posts, votos, comentarios, estados
+- [x] **Fase 1** — Core del board: posts, votos, comentarios, estados
 - [ ] **Fase 2** — SDK de identidad JWT + priorización por revenue + boards privados
 - [ ] **Fase 3** — Roadmap kanban + changelog con notificaciones
 - [ ] **Fase 4** — Widget embebible < 30 KB

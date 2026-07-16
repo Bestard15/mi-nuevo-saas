@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -262,3 +263,69 @@ export const comments = pgTable(
   },
   (c) => [index("comment_post_idx").on(c.postId)]
 );
+
+// ---------------------------------------------------------------------------
+// Relations (drizzle query API)
+// ---------------------------------------------------------------------------
+
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+  memberships: many(memberships),
+  projects: many(projects),
+}));
+
+export const membershipsRelations = relations(memberships, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [memberships.organizationId],
+    references: [organizations.id],
+  }),
+  user: one(users, { fields: [memberships.userId], references: [users.id] }),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [projects.organizationId],
+    references: [organizations.id],
+  }),
+  boards: many(boards),
+  statuses: many(statuses),
+  endUsers: many(endUsers),
+}));
+
+export const boardsRelations = relations(boards, ({ one, many }) => ({
+  project: one(projects, { fields: [boards.projectId], references: [projects.id] }),
+  posts: many(posts),
+}));
+
+export const statusesRelations = relations(statuses, ({ one, many }) => ({
+  project: one(projects, { fields: [statuses.projectId], references: [projects.id] }),
+  posts: many(posts),
+}));
+
+export const endUsersRelations = relations(endUsers, ({ one, many }) => ({
+  project: one(projects, { fields: [endUsers.projectId], references: [projects.id] }),
+  votes: many(votes),
+}));
+
+export const postsRelations = relations(posts, ({ one, many }) => ({
+  board: one(boards, { fields: [posts.boardId], references: [boards.id] }),
+  status: one(statuses, { fields: [posts.statusId], references: [statuses.id] }),
+  authorEndUser: one(endUsers, { fields: [posts.authorEndUserId], references: [endUsers.id] }),
+  authorUser: one(users, { fields: [posts.authorUserId], references: [users.id] }),
+  votes: many(votes),
+  comments: many(comments),
+}));
+
+export const votesRelations = relations(votes, ({ one }) => ({
+  post: one(posts, { fields: [votes.postId], references: [posts.id] }),
+  endUser: one(endUsers, { fields: [votes.endUserId], references: [endUsers.id] }),
+  user: one(users, { fields: [votes.userId], references: [users.id] }),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  post: one(posts, { fields: [comments.postId], references: [posts.id] }),
+  authorEndUser: one(endUsers, {
+    fields: [comments.authorEndUserId],
+    references: [endUsers.id],
+  }),
+  authorUser: one(users, { fields: [comments.authorUserId], references: [users.id] }),
+}));
