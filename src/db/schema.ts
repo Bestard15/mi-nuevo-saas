@@ -1,0 +1,264 @@
+import {
+  boolean,
+  index,
+  integer,
+  numeric,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+import type { AdapterAccountType } from "next-auth/adapters";
+
+// ---------------------------------------------------------------------------
+// Auth.js (dashboard users: founders / product teams that own an organization)
+// ---------------------------------------------------------------------------
+
+export const users = pgTable("user", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name"),
+  email: text("email").unique(),
+  emailVerified: timestamp("email_verified", { mode: "date" }),
+  image: text("image"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export const accounts = pgTable(
+  "account",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").$type<AdapterAccountType>().notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("provider_account_id").notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
+    id_token: text("id_token"),
+    session_state: text("session_state"),
+  },
+  (account) => [primaryKey({ columns: [account.provider, account.providerAccountId] })]
+);
+
+export const sessions = pgTable("session", {
+  sessionToken: text("session_token").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+export const verificationTokens = pgTable(
+  "verification_token",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires", { mode: "date" }).notNull(),
+  },
+  (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
+);
+
+// ---------------------------------------------------------------------------
+// Multi-tenancy: organization -> projects (tenant URL slug) -> boards -> posts
+// ---------------------------------------------------------------------------
+
+export const memberRoleEnum = pgEnum("member_role", ["owner", "admin", "member"]);
+
+export const organizations = pgTable("organization", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
+export const memberships = pgTable(
+  "membership",
+  {
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: memberRoleEnum("role").notNull().default("member"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (m) => [primaryKey({ columns: [m.organizationId, m.userId] })]
+);
+
+export const projects = pgTable(
+  "project",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // Public URL: /p/{slug} — globally unique across tenants.
+    slug: text("slug").notNull().unique(),
+    // Private boards on every plan: pricing must never gate privacy.
+    isPrivate: boolean("is_private").notNull().default(false),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (p) => [index("project_org_idx").on(p.organizationId)]
+);
+
+// ---------------------------------------------------------------------------
+// Feedback domain
+// ---------------------------------------------------------------------------
+
+export const statusCategoryEnum = pgEnum("status_category", [
+  "open",
+  "planned",
+  "in_progress",
+  "shipped",
+  "closed",
+]);
+
+export const statuses = pgTable(
+  "status",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    category: statusCategoryEnum("category").notNull().default("open"),
+    color: text("color").notNull().default("#6b7280"),
+    position: integer("position").notNull().default(0),
+    isDefault: boolean("is_default").notNull().default(false),
+  },
+  (s) => [index("status_project_idx").on(s.projectId)]
+);
+
+export const boards = pgTable(
+  "board",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    description: text("description"),
+    isPrivate: boolean("is_private").notNull().default(false),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (b) => [uniqueIndex("board_project_slug_idx").on(b.projectId, b.slug)]
+);
+
+// End users: the customers of our customers, identified via the widget/SDK
+// (JWT identify). They carry revenue attributes so posts can be prioritized
+// by revenue impact instead of raw vote count.
+export const endUsers = pgTable(
+  "end_user",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    externalId: text("external_id").notNull(),
+    email: text("email"),
+    name: text("name"),
+    avatarUrl: text("avatar_url"),
+    company: text("company"),
+    plan: text("plan"),
+    mrr: numeric("mrr", { precision: 12, scale: 2 }).notNull().default("0"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (e) => [uniqueIndex("end_user_project_external_idx").on(e.projectId, e.externalId)]
+);
+
+export const posts = pgTable(
+  "post",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    boardId: text("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
+    statusId: text("status_id").references(() => statuses.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    content: text("content"),
+    // A post is authored either by an end user (widget/public board) or by a
+    // team member (dashboard); exactly one of these should be set.
+    authorEndUserId: text("author_end_user_id").references(() => endUsers.id, {
+      onDelete: "set null",
+    }),
+    authorUserId: text("author_user_id").references(() => users.id, { onDelete: "set null" }),
+    // Denormalized aggregates, kept in sync on vote writes, so board sorting
+    // (by votes or by revenue impact) never needs a join.
+    voteCount: integer("vote_count").notNull().default(0),
+    revenueImpact: numeric("revenue_impact", { precision: 14, scale: 2 }).notNull().default("0"),
+    isPinned: boolean("is_pinned").notNull().default(false),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (p) => [
+    index("post_board_idx").on(p.boardId),
+    index("post_status_idx").on(p.statusId),
+    index("post_board_votes_idx").on(p.boardId, p.voteCount),
+    index("post_board_revenue_idx").on(p.boardId, p.revenueImpact),
+  ]
+);
+
+export const votes = pgTable(
+  "vote",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    postId: text("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    endUserId: text("end_user_id").references(() => endUsers.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    // Snapshot of the voter's MRR at vote time; summed into post.revenueImpact.
+    mrrSnapshot: numeric("mrr_snapshot", { precision: 12, scale: 2 }).notNull().default("0"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (v) => [
+    uniqueIndex("vote_post_end_user_idx").on(v.postId, v.endUserId),
+    uniqueIndex("vote_post_user_idx").on(v.postId, v.userId),
+  ]
+);
+
+export const comments = pgTable(
+  "comment",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    postId: text("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    parentId: text("parent_id"),
+    body: text("body").notNull(),
+    authorEndUserId: text("author_end_user_id").references(() => endUsers.id, {
+      onDelete: "set null",
+    }),
+    authorUserId: text("author_user_id").references(() => users.id, { onDelete: "set null" }),
+    isTeamReply: boolean("is_team_reply").notNull().default(false),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (c) => [index("comment_post_idx").on(c.postId)]
+);
