@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -110,6 +110,12 @@ export const projects = pgTable(
     slug: text("slug").notNull().unique(),
     // Private boards on every plan: pricing must never gate privacy.
     isPrivate: boolean("is_private").notNull().default(false),
+    // HS256 secret the customer's backend uses to sign identify() JWTs.
+    // The SQL default covers pre-existing rows; new projects get a fresh
+    // secret from the application on creation.
+    ssoSecret: text("sso_secret")
+      .notNull()
+      .default(sql`md5(random()::text) || md5(random()::text)`),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
   (p) => [index("project_org_idx").on(p.organizationId)]

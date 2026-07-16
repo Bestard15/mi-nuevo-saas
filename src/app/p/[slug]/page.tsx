@@ -5,8 +5,8 @@ import { notFound } from "next/navigation";
 
 import { db } from "@/db";
 import { posts, projects, statuses, votes } from "@/db/schema";
-import { getSessionUserId, isProjectMember } from "@/lib/authz";
-import { findAnonEndUser } from "@/lib/viewer";
+import { getViewerContext } from "@/lib/authz";
+import { resolveEndUser } from "@/lib/viewer";
 import { NewPostForm } from "@/components/board/new-post-form";
 import { PostCard } from "@/components/board/post-card";
 import { Badge } from "@/components/ui/badge";
@@ -53,9 +53,8 @@ export default async function PublicProjectPage({
   });
   if (!project) notFound();
 
-  const userId = await getSessionUserId();
-  const isMember = userId ? await isProjectMember(project.id, userId) : false;
-  if (project.isPrivate && !isMember) notFound();
+  const { userId, isMember, canViewPrivate } = await getViewerContext(project.id);
+  if (project.isPrivate && !canViewPrivate) notFound();
 
   const visibleBoards = project.boards.filter((b) => !b.isPrivate || isMember);
   const currentBoard =
@@ -100,19 +99,21 @@ export default async function PublicProjectPage({
   const postIds = postRows.map((r) => r.post.id);
   let votedIds = new Set<string>();
   if (postIds.length > 0) {
-    if (userId) {
+    // Same identity rule as the vote action: members vote with their user
+    // account; everyone else (incl. signed-in non-members) as an end user.
+    if (isMember && userId) {
       const rows = await db
         .select({ postId: votes.postId })
         .from(votes)
         .where(and(inArray(votes.postId, postIds), eq(votes.userId, userId)));
       votedIds = new Set(rows.map((r) => r.postId));
     } else {
-      const anon = await findAnonEndUser(project.id);
-      if (anon) {
+      const endUser = await resolveEndUser(project.id);
+      if (endUser) {
         const rows = await db
           .select({ postId: votes.postId })
           .from(votes)
-          .where(and(inArray(votes.postId, postIds), eq(votes.endUserId, anon.id)));
+          .where(and(inArray(votes.postId, postIds), eq(votes.endUserId, endUser.id)));
         votedIds = new Set(rows.map((r) => r.postId));
       }
     }

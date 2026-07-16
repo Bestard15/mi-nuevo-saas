@@ -6,8 +6,8 @@ import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import { boards, posts, statuses } from "@/db/schema";
-import { getSessionUserId, isProjectMember, requireProjectMember } from "@/lib/authz";
-import { getOrCreateAnonEndUser } from "@/lib/viewer";
+import { getViewerContext, requireProjectMember } from "@/lib/authz";
+import { resolveOrCreateEndUser } from "@/lib/viewer";
 import { createPostSchema, firstIssue, updatePostSchema } from "@/lib/validators";
 
 export type ActionState = { error: string } | undefined;
@@ -38,9 +38,8 @@ export async function createPost(
   const board = await getBoardWithProject(boardId);
   if (!board) return { error: "El board no existe" };
 
-  const userId = await getSessionUserId();
-  const isMember = userId ? await isProjectMember(board.projectId, userId) : false;
-  if ((board.project.isPrivate || board.isPrivate) && !isMember) {
+  const { userId, isMember, canViewPrivate } = await getViewerContext(board.projectId);
+  if ((board.project.isPrivate || board.isPrivate) && !canViewPrivate) {
     return { error: "Este board es privado" };
   }
 
@@ -62,7 +61,7 @@ export async function createPost(
       .returning({ id: posts.id });
     postId = post.id;
   } else {
-    const endUser = await getOrCreateAnonEndUser(board.projectId);
+    const endUser = await resolveOrCreateEndUser(board.projectId);
     const [post] = await db
       .insert(posts)
       .values({

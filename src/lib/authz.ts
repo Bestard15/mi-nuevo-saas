@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { memberships, projects } from "@/db/schema";
+import { findSsoEndUser } from "@/lib/viewer";
 
 /** Returns the session user id, or null when not signed in. */
 export async function getSessionUserId(): Promise<string | null> {
@@ -19,6 +20,26 @@ export async function isProjectMember(projectId: string, userId: string): Promis
     .where(and(eq(projects.id, projectId), eq(memberships.userId, userId)))
     .limit(1);
   return rows.length > 0;
+}
+
+/**
+ * Everything access control needs to know about the current visitor, in one
+ * lookup: team membership (dashboard session) and SSO-identified end user.
+ *
+ * Private projects/boards are visible to members OR identified end users —
+ * never to anonymous visitors. That's the strict rule for private boards:
+ * "your customers", proven by a JWT their vendor signed, and nobody else.
+ */
+export async function getViewerContext(projectId: string) {
+  const userId = await getSessionUserId();
+  const isMember = userId ? await isProjectMember(projectId, userId) : false;
+  const ssoEndUser = isMember ? null : await findSsoEndUser(projectId);
+  return {
+    userId,
+    isMember,
+    ssoEndUser,
+    canViewPrivate: isMember || ssoEndUser !== null,
+  };
 }
 
 /**

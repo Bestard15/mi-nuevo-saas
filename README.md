@@ -46,11 +46,41 @@ src/
     api/auth/[...nextauth]/
 ```
 
+## Identificación de usuarios (SSO por JWT)
+
+Cada proyecto tiene un `ssoSecret` (visible en su dashboard de administración). El backend del
+cliente firma un JWT **HS256** con ese secreto y envía al usuario al endpoint de identify:
+
+```js
+// Node.js (npm i jose)
+import { SignJWT } from "jose";
+
+const token = await new SignJWT({
+  id: "user_123",          // requerido: id estable del usuario en tu sistema
+  email: "ana@acme.com",
+  name: "Ana García",
+  company: "Acme Inc",
+  plan: "growth",
+  mrr: 499,                // lo que paga al mes → alimenta la priorización por revenue
+})
+  .setProtectedHeader({ alg: "HS256" })
+  .setIssuedAt()
+  .setExpirationTime("10m")
+  .sign(new TextEncoder().encode(SSO_SECRET));
+
+// Redirige a:
+// https://tu-echoboard.com/api/sso/<proyecto>?token=<jwt>&redirect=/p/<proyecto>
+```
+
+Efectos: el visitante queda identificado (cookie httpOnly de 30 días), sus votos cargan su MRR
+en `revenue_impact`, y obtiene acceso a los boards privados del proyecto. También existe
+`POST /api/sso/<proyecto>` con `{ "token": "<jwt>" }` para el widget (Fase 4).
+
 ## Roadmap del MVP
 
 - [x] **Fase 0** — Scaffold, esquema multi-tenant, Auth.js
 - [x] **Fase 1** — Core del board: posts, votos, comentarios, estados
-- [ ] **Fase 2** — SDK de identidad JWT + priorización por revenue + boards privados
+- [x] **Fase 2** — SDK de identidad JWT + priorización por revenue + boards privados
 - [ ] **Fase 3** — Roadmap kanban + changelog con notificaciones
 - [ ] **Fase 4** — Widget embebible < 30 KB
 - [ ] **Fase 5** — API pública + webhooks

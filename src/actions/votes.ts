@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
 import { posts, votes } from "@/db/schema";
-import { getSessionUserId, isProjectMember } from "@/lib/authz";
-import { getOrCreateAnonEndUser } from "@/lib/viewer";
+import { getViewerContext } from "@/lib/authz";
+import { resolveOrCreateEndUser } from "@/lib/viewer";
 
 /**
  * Toggles the current viewer's vote on a post and keeps the post's
@@ -24,9 +24,8 @@ export async function toggleVote(postId: string): Promise<void> {
   if (!post) throw new Error("El post no existe");
 
   const project = post.board.project;
-  const userId = await getSessionUserId();
-  const isMember = userId ? await isProjectMember(project.id, userId) : false;
-  if ((project.isPrivate || post.board.isPrivate) && !isMember) {
+  const { userId, isMember, canViewPrivate } = await getViewerContext(project.id);
+  if ((project.isPrivate || post.board.isPrivate) && !canViewPrivate) {
     throw new Error("Este board es privado");
   }
 
@@ -38,7 +37,7 @@ export async function toggleVote(postId: string): Promise<void> {
     voterColumn = votes.userId;
     voterId = userId;
   } else {
-    const endUser = await getOrCreateAnonEndUser(project.id);
+    const endUser = await resolveOrCreateEndUser(project.id);
     voterColumn = votes.endUserId;
     voterId = endUser.id;
     mrrSnapshot = endUser.mrr;

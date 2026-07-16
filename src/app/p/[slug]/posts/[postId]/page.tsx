@@ -6,8 +6,8 @@ import { deleteComment } from "@/actions/comments";
 import { deletePost, setPostStatus, updatePost } from "@/actions/posts";
 import { db } from "@/db";
 import { comments, posts, votes } from "@/db/schema";
-import { getSessionUserId, isProjectMember } from "@/lib/authz";
-import { findAnonEndUser } from "@/lib/viewer";
+import { getViewerContext } from "@/lib/authz";
+import { resolveEndUser } from "@/lib/viewer";
 import { ActionForm } from "@/components/action-form";
 import { CommentForm } from "@/components/board/comment-form";
 import { StatusBadge } from "@/components/board/status-badge";
@@ -40,9 +40,8 @@ export default async function PostDetailPage({
   if (!post || post.board.project.slug !== slug) notFound();
 
   const project = post.board.project;
-  const userId = await getSessionUserId();
-  const isMember = userId ? await isProjectMember(project.id, userId) : false;
-  if ((project.isPrivate || post.board.isPrivate) && !isMember) notFound();
+  const { userId, isMember, canViewPrivate } = await getViewerContext(project.id);
+  if ((project.isPrivate || post.board.isPrivate) && !canViewPrivate) notFound();
 
   const commentList = await db.query.comments.findMany({
     where: eq(comments.postId, postId),
@@ -51,18 +50,18 @@ export default async function PostDetailPage({
   });
 
   let hasVoted = false;
-  if (userId) {
+  if (isMember && userId) {
     hasVoted = Boolean(
       await db.query.votes.findFirst({
         where: and(eq(votes.postId, postId), eq(votes.userId, userId)),
       })
     );
   } else {
-    const anon = await findAnonEndUser(project.id);
-    if (anon) {
+    const endUser = await resolveEndUser(project.id);
+    if (endUser) {
       hasVoted = Boolean(
         await db.query.votes.findFirst({
-          where: and(eq(votes.postId, postId), eq(votes.endUserId, anon.id)),
+          where: and(eq(votes.postId, postId), eq(votes.endUserId, endUser.id)),
         })
       );
     }

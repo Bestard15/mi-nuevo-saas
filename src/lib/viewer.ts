@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { endUsers } from "@/db/schema";
+import { ssoCookieName, verifyEndUserSession } from "@/lib/sso";
 
 const ANON_COOKIE = "eb_uid";
 
@@ -12,6 +13,23 @@ const ANON_COOKIE = "eb_uid";
 export async function getAnonUid(): Promise<string | null> {
   const jar = await cookies();
   return jar.get(ANON_COOKIE)?.value ?? null;
+}
+
+/**
+ * The end user identified via the SSO cookie for this project, or null.
+ * Safe to call from server components (read-only).
+ */
+export async function findSsoEndUser(projectId: string) {
+  const jar = await cookies();
+  const token = jar.get(ssoCookieName(projectId))?.value;
+  if (!token) return null;
+  const endUserId = await verifyEndUserSession(token, projectId);
+  if (!endUserId) return null;
+  return (
+    (await db.query.endUsers.findFirst({
+      where: and(eq(endUsers.id, endUserId), eq(endUsers.projectId, projectId)),
+    })) ?? null
+  );
 }
 
 /**
@@ -29,11 +47,28 @@ export async function findAnonEndUser(projectId: string) {
 }
 
 /**
+ * The current visitor's end-user identity for a project, preferring the SSO
+ * (JWT-identified) session over the anonymous cookie. Read-only.
+ */
+export async function resolveEndUser(projectId: string) {
+  return (await findSsoEndUser(projectId)) ?? (await findAnonEndUser(projectId));
+}
+
+/**
+ * Like resolveEndUser but creates the anonymous identity when the visitor has
+ * none. Must be called from a server action or route handler (it may set the
+ * identity cookie). Identified (SSO) visitors always win over anonymous ones.
+ */
+export async function resolveOrCreateEndUser(projectId: string) {
+  const identified = await findSsoEndUser(projectId);
+  if (identified) return identified;
+  return getOrCreateAnonEndUser(projectId);
+}
+
+/**
  * Gets or creates the anonymous end user for a project. Must be called from a
  * server action or route handler (it may set the identity cookie).
- *
- * In Fase 2 the widget SDK's JWT identify() will upsert real end users with
- * revenue attributes; anonymous visitors always carry mrr = 0.
+ * Anonymous visitors always carry mrr = 0.
  */
 export async function getOrCreateAnonEndUser(projectId: string) {
   const jar = await cookies();

@@ -56,20 +56,28 @@ export default async function DashboardPage() {
               </p>
             ) : (
               rows.map(({ project, role }) => (
-                <Link
+                <div
                   key={project.id}
-                  href={`/p/${project.slug}`}
-                  className="flex items-center justify-between rounded-xl border bg-card p-4 hover:bg-accent"
+                  className="flex items-center justify-between rounded-xl border bg-card p-4"
                 >
                   <div>
-                    <p className="font-medium">{project.name}</p>
-                    <p className="text-xs text-muted-foreground">/p/{project.slug}</p>
+                    <Link
+                      href={`/dashboard/${project.slug}`}
+                      className="font-medium hover:underline"
+                    >
+                      {project.name}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                      <Link href={`/p/${project.slug}`} className="hover:underline">
+                        /p/{project.slug}
+                      </Link>
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {project.isPrivate ? <Badge variant="outline">Privado</Badge> : null}
                     <Badge variant="secondary">{role}</Badge>
                   </div>
-                </Link>
+                </div>
               ))
             )}
           </div>

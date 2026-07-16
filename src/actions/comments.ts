@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
 import { comments, posts } from "@/db/schema";
-import { getSessionUserId, isProjectMember, requireProjectMember } from "@/lib/authz";
-import { getOrCreateAnonEndUser } from "@/lib/viewer";
+import { getViewerContext, requireProjectMember } from "@/lib/authz";
+import { resolveOrCreateEndUser } from "@/lib/viewer";
 import { addCommentSchema, firstIssue } from "@/lib/validators";
 
 export type ActionState = { error: string } | undefined;
@@ -30,9 +30,8 @@ export async function addComment(
   if (!post) return { error: "El post no existe" };
 
   const project = post.board.project;
-  const userId = await getSessionUserId();
-  const isMember = userId ? await isProjectMember(project.id, userId) : false;
-  if ((project.isPrivate || post.board.isPrivate) && !isMember) {
+  const { userId, isMember, canViewPrivate } = await getViewerContext(project.id);
+  if ((project.isPrivate || post.board.isPrivate) && !canViewPrivate) {
     return { error: "Este board es privado" };
   }
 
@@ -44,7 +43,7 @@ export async function addComment(
       isTeamReply: true,
     });
   } else {
-    const endUser = await getOrCreateAnonEndUser(project.id);
+    const endUser = await resolveOrCreateEndUser(project.id);
     await db.insert(comments).values({
       postId,
       body: parsed.data.body,

@@ -1,11 +1,12 @@
 "use server";
 
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import { boards, memberships, organizations, projects, statuses } from "@/db/schema";
-import { getSessionUserId } from "@/lib/authz";
+import { getSessionUserId, requireProjectMember } from "@/lib/authz";
 import { slugify } from "@/lib/slug";
 import { createProjectSchema, firstIssue } from "@/lib/validators";
 
@@ -75,5 +76,37 @@ export async function createProject(
       .values(DEFAULT_STATUSES.map((s) => ({ ...s, projectId: project.id })));
   });
 
-  redirect(`/p/${slug}`);
+  redirect(`/dashboard/${slug}`);
+}
+
+/** Flips a project between public and private. Members only. */
+export async function setProjectPrivacy(projectId: string, isPrivate: boolean): Promise<void> {
+  await requireProjectMember(projectId);
+  const [project] = await db
+    .update(projects)
+    .set({ isPrivate })
+    .where(eq(projects.id, projectId))
+    .returning({ slug: projects.slug });
+  if (!project) return;
+  revalidatePath(`/p/${project.slug}`);
+  revalidatePath(`/dashboard/${project.slug}`);
+}
+
+/**
+ * Rotates the project's SSO secret. Members only. Existing end-user sessions
+ * stay valid (they're signed with AUTH_SECRET); only new identify tokens are
+ * affected, which is exactly what you want when a secret leaks.
+ */
+export async function rotateSsoSecret(projectId: string): Promise<void> {
+  await requireProjectMember(projectId);
+  const newSecret = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const [project] = await db
+    .update(projects)
+    .set({ ssoSecret: newSecret })
+    .where(eq(projects.id, projectId))
+    .returning({ slug: projects.slug });
+  if (!project) return;
+  revalidatePath(`/dashboard/${project.slug}`);
 }
