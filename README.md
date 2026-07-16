@@ -43,7 +43,11 @@ src/
     login/              # Sign-in (Google/GitHub)
     dashboard/          # Panel del equipo (protegido)
     p/[slug]/           # Board público por tenant (SSR)
+    embed/[slug]/       # Vista compacta para el iframe del widget
     api/auth/[...nextauth]/
+widget/
+  src/index.ts          # Widget embebible (vanilla TS → public/widget.js)
+  build.mjs             # Build esbuild con presupuesto de 30 KB
 ```
 
 ## Identificación de usuarios (SSO por JWT)
@@ -74,7 +78,32 @@ const token = await new SignJWT({
 
 Efectos: el visitante queda identificado (cookie httpOnly de 30 días), sus votos cargan su MRR
 en `revenue_impact`, y obtiene acceso a los boards privados del proyecto. También existe
-`POST /api/sso/<proyecto>` con `{ "token": "<jwt>" }` para el widget (Fase 4).
+`POST /api/sso/<proyecto>` con `{ "token": "<jwt>" }` para flujos programáticos.
+
+## Widget embebible (< 30 KB)
+
+El board puede incrustarse en la app del cliente sin frameworks ni dependencias. El bundle
+(`public/widget.js`, ~4 KB minificado) se compila con esbuild desde `widget/src/index.ts`; el
+build falla si supera los 30 KB.
+
+```html
+<!-- Popup con botón flotante (auto-init) -->
+<script src="https://tu-echoboard.com/widget.js" data-project="mi-producto" defer></script>
+
+<!-- O programático, con identificación SSO -->
+<script src="https://tu-echoboard.com/widget.js" defer></script>
+<script>
+  window.addEventListener("load", function () {
+    Echoboard.init({ project: "mi-producto" });          // mode: "inline", target: "#feedback"
+    Echoboard.identify("<jwt>");                          // mismo JWT del flujo SSO
+  });
+</script>
+```
+
+El widget renderiza `/embed/<proyecto>` en un iframe; `identify()` enruta el iframe por
+`GET /api/sso/<proyecto>` para fijar la sesión del end user server-side (el `ssoSecret` nunca
+toca el navegador). Demo local en `/widget-demo.html`. Build manual: `npm run widget:build`
+(también se ejecuta dentro de `npm run build`).
 
 ## Roadmap del MVP
 
@@ -82,6 +111,6 @@ en `revenue_impact`, y obtiene acceso a los boards privados del proyecto. Tambi�
 - [x] **Fase 1** — Core del board: posts, votos, comentarios, estados
 - [x] **Fase 2** — SDK de identidad JWT + priorización por revenue + boards privados
 - [x] **Fase 3** — Roadmap kanban + changelog + emails de "Lanzado" (Resend)
-- [ ] **Fase 4** — Widget embebible < 30 KB
+- [x] **Fase 4** — Widget embebible < 30 KB
 - [ ] **Fase 5** — API pública + webhooks
 - [ ] **Fase 6** — Stripe + lanzamiento

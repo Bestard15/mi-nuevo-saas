@@ -85,4 +85,5 @@ export async function toggleVote(postId: string): Promise<void> {
 
   revalidatePath(`/p/${project.slug}`);
   revalidatePath(`/p/${project.slug}/posts/${postId}`);
+  revalidatePath(`/embed/${project.slug}`);
 }

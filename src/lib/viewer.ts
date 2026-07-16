@@ -75,10 +75,13 @@ export async function getOrCreateAnonEndUser(projectId: string) {
   let uid = jar.get(ANON_COOKIE)?.value;
   if (!uid) {
     uid = crypto.randomUUID();
+    // SameSite=None in production so the anonymous identity also works when
+    // the board lives inside the customer's iframe (the embed widget).
+    const production = process.env.NODE_ENV === "production";
     jar.set(ANON_COOKIE, uid, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: production ? "none" : "lax",
+      secure: production,
       maxAge: 60 * 60 * 24 * 365,
       path: "/",
     });

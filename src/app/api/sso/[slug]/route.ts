@@ -69,10 +69,14 @@ async function upsertEndUser(projectId: string, payload: IdentifyPayload) {
 }
 
 function setSessionCookie(response: NextResponse, projectId: string, session: string) {
+  // In production the cookie must survive inside the customer's iframe
+  // (cross-site), which requires SameSite=None + Secure. In dev (http)
+  // browsers reject SameSite=None without Secure, so we keep Lax there.
+  const production = process.env.NODE_ENV === "production";
   response.cookies.set(ssoCookieName(projectId), session, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: production ? "none" : "lax",
+    secure: production,
     maxAge: SSO_SESSION_TTL_SECONDS,
     path: "/",
   });

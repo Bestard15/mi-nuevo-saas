@@ -5,7 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-export function NewPostForm({ boardId }: { boardId: string }) {
+export function NewPostForm({
+  boardId,
+  redirectTo,
+}: {
+  boardId: string;
+  /** After creating, go here instead of the post detail (used by the embed). */
+  redirectTo?: string;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -13,6 +20,7 @@ export function NewPostForm({ boardId }: { boardId: string }) {
       </CardHeader>
       <CardContent>
         <ActionForm action={createPost.bind(null, boardId)} className="flex flex-col gap-3">
+          {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
           <Input name="title" placeholder="Título corto y accionable" required minLength={3} maxLength={200} />
           <Textarea
             name="content"

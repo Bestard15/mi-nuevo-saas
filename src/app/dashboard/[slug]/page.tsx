@@ -83,6 +83,7 @@ export default async function ProjectAdminPage({
     .where(and(eq(endUsers.projectId, project.id), gt(endUsers.mrr, "0")));
 
   const ssoUrl = `/api/sso/${project.slug}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://tu-echoboard.com";
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -259,7 +260,40 @@ export default async function ProjectAdminPage({
               </pre>
               <p className="mt-2 text-muted-foreground">
                 También acepta <code className="font-mono">POST {ssoUrl}</code> con{" "}
-                <code className="font-mono">{`{ "token": "<jwt>" }`}</code> (lo usará el widget).
+                <code className="font-mono">{`{ "token": "<jwt>" }`}</code>.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Widget embebible</CardTitle>
+            <CardDescription>
+              Pega esto en tu app y tus usuarios votan sin salir de ella. Pesa menos de 30 KB y
+              no necesita ningún framework.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 text-sm">
+            <pre className="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs">
+{`<script src="${appUrl}/widget.js" data-project="${project.slug}" defer></script>`}
+            </pre>
+            <div>
+              <p className="font-medium">Con identificación de usuario (mismo JWT del SSO):</p>
+              <pre className="mt-2 overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs">
+{`<script src="${appUrl}/widget.js" defer></script>
+<script>
+  window.addEventListener("load", function () {
+    Echoboard.init({ project: "${project.slug}" });
+    Echoboard.identify("<jwt>"); // opcional: activa MRR y boards privados
+  });
+</script>`}
+              </pre>
+              <p className="mt-2 text-muted-foreground">
+                Modo inline: <code className="font-mono">{`Echoboard.init({ project: "${project.slug}", mode: "inline", target: "#feedback" })`}</code>.
+                Demo local en <code className="font-mono">/widget-demo.html</code>.
               </p>
             </div>
           </CardContent>

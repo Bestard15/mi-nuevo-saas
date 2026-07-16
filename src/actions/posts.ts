@@ -13,6 +13,13 @@ import { createPostSchema, firstIssue, updatePostSchema } from "@/lib/validators
 
 export type ActionState = { error: string } | undefined;
 
+/** Only same-origin relative paths — the form field is client-controlled. */
+function safeRelativePath(raw: FormDataEntryValue | null): string | null {
+  if (typeof raw !== "string") return null;
+  if (raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")) return raw;
+  return null;
+}
+
 async function getBoardWithProject(boardId: string) {
   return db.query.boards.findFirst({
     where: eq(boards.id, boardId),
@@ -77,7 +84,12 @@ export async function createPost(
   }
 
   revalidatePath(`/p/${board.project.slug}`);
-  redirect(`/p/${board.project.slug}/posts/${postId}`);
+  revalidatePath(`/embed/${board.project.slug}`);
+  // The embed widget posts a redirectTo so the flow stays inside the iframe.
+  redirect(
+    safeRelativePath(formData.get("redirectTo")) ??
+      `/p/${board.project.slug}/posts/${postId}`
+  );
 }
 
 /** Edits a post's title/content. Members of the project only. */
