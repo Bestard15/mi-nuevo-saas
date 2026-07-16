@@ -15,6 +15,13 @@
       "when": 1784198692086,
       "tag": "0001_dapper_siren",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784199320051,
+      "tag": "0002_regular_silhouette",
+      "breakpoints": true
     }
   ]
 }

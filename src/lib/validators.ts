@@ -15,6 +15,11 @@ export const addCommentSchema = z.object({
   body: z.string().trim().min(1, "El comentario no puede estar vacío").max(5000),
 });
 
+export const changelogEntrySchema = z.object({
+  title: z.string().trim().min(3, "El título debe tener al menos 3 caracteres").max(200),
+  body: z.string().trim().min(1, "El contenido no puede estar vacío").max(20000),
+});
+
 export function firstIssue(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Datos inválidos";
 }

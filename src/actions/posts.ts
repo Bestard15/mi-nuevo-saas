@@ -1,12 +1,13 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { boards, posts, statuses } from "@/db/schema";
+import { boards, endUsers, posts, statuses, votes } from "@/db/schema";
 import { getViewerContext, requireProjectMember } from "@/lib/authz";
+import { sendShippedEmails } from "@/lib/email";
 import { resolveOrCreateEndUser } from "@/lib/viewer";
 import { createPostSchema, firstIssue, updatePostSchema } from "@/lib/validators";
 
@@ -137,7 +138,7 @@ export async function deletePost(postId: string): Promise<void> {
 export async function setPostStatus(postId: string, statusId: string): Promise<void> {
   const post = await db.query.posts.findFirst({
     where: eq(posts.id, postId),
-    with: { board: { with: { project: true } } },
+    with: { board: { with: { project: true } }, authorEndUser: true },
   });
   if (!post) throw new Error("El post no existe");
 
@@ -153,7 +154,46 @@ export async function setPostStatus(postId: string, statusId: string): Promise<v
     .set({ statusId: status.id, updatedAt: new Date() })
     .where(eq(posts.id, postId));
 
+  // First transition to "shipped": close the loop with the people who asked.
+  if (status.category === "shipped" && !post.shippedNotifiedAt) {
+    await notifyShipped(post.id, post.title, post.board.project, post.authorEndUser?.email);
+  }
+
   const slug = post.board.project.slug;
   revalidatePath(`/p/${slug}`);
   revalidatePath(`/p/${slug}/posts/${postId}`);
+  revalidatePath(`/p/${slug}/roadmap`);
+}
+
+async function notifyShipped(
+  postId: string,
+  postTitle: string,
+  project: { name: string; slug: string },
+  authorEmail: string | null | undefined
+): Promise<void> {
+  const voterRows = await db
+    .select({ email: endUsers.email })
+    .from(votes)
+    .innerJoin(endUsers, eq(votes.endUserId, endUsers.id))
+    .where(and(eq(votes.postId, postId), isNotNull(endUsers.email)));
+
+  const recipients = voterRows
+    .map((r) => r.email)
+    .filter((e): e is string => Boolean(e));
+  if (authorEmail) recipients.push(authorEmail);
+
+  await sendShippedEmails({
+    projectName: project.name,
+    projectSlug: project.slug,
+    postTitle,
+    postId,
+    recipients,
+  });
+
+  // Mark as notified regardless of send outcome so status toggling never
+  // spams voters; a failed provider call is logged, not retried onto users.
+  await db
+    .update(posts)
+    .set({ shippedNotifiedAt: new Date() })
+    .where(eq(posts.id, postId));
 }

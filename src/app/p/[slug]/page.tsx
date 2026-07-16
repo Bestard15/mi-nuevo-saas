@@ -136,11 +136,20 @@ export default async function PublicProjectPage({
           <h1 className="text-2xl font-bold">{project.name}</h1>
           {project.isPrivate ? <Badge variant="outline">Privado</Badge> : null}
         </div>
-        {isMember ? (
-          <Link href="/dashboard" className="text-sm text-muted-foreground hover:underline">
-            ← Dashboard
+        <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Feedback</span>
+          <Link href={`/p/${slug}/roadmap`} className="hover:underline">
+            Roadmap
           </Link>
-        ) : null}
+          <Link href={`/p/${slug}/changelog`} className="hover:underline">
+            Changelog
+          </Link>
+          {isMember ? (
+            <Link href={`/dashboard/${slug}`} className="hover:underline">
+              Dashboard
+            </Link>
+          ) : null}
+        </nav>
       </header>
 
       {visibleBoards.length > 1 ? (

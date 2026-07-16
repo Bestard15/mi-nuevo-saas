@@ -98,6 +98,12 @@ export default async function ProjectAdminPage({
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href={`/dashboard/${project.slug}/changelog`}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            Changelog
+          </Link>
+          <Link
             href={`/p/${project.slug}`}
             className="text-sm text-muted-foreground hover:underline"
           >

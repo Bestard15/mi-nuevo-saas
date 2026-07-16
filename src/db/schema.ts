@@ -217,6 +217,9 @@ export const posts = pgTable(
     voteCount: integer("vote_count").notNull().default(0),
     revenueImpact: numeric("revenue_impact", { precision: 14, scale: 2 }).notNull().default("0"),
     isPinned: boolean("is_pinned").notNull().default(false),
+    // Set the first time the post reaches a "shipped" status, so voters are
+    // never notified twice even if the status is toggled back and forth.
+    shippedNotifiedAt: timestamp("shipped_notified_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
   },
@@ -270,6 +273,26 @@ export const comments = pgTable(
   (c) => [index("comment_post_idx").on(c.postId)]
 );
 
+// Changelog: announcements the team publishes when features ship. An entry
+// is a draft until published_at is set.
+export const changelogEntries = pgTable(
+  "changelog_entry",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    publishedAt: timestamp("published_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (c) => [index("changelog_project_idx").on(c.projectId, c.publishedAt)]
+);
+
 // ---------------------------------------------------------------------------
 // Relations (drizzle query API)
 // ---------------------------------------------------------------------------
@@ -295,6 +318,14 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   boards: many(boards),
   statuses: many(statuses),
   endUsers: many(endUsers),
+  changelogEntries: many(changelogEntries),
+}));
+
+export const changelogEntriesRelations = relations(changelogEntries, ({ one }) => ({
+  project: one(projects, {
+    fields: [changelogEntries.projectId],
+    references: [projects.id],
+  }),
 }));
 
 export const boardsRelations = relations(boards, ({ one, many }) => ({

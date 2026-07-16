@@ -81,7 +81,7 @@ en `revenue_impact`, y obtiene acceso a los boards privados del proyecto. Tambi�
 - [x] **Fase 0** — Scaffold, esquema multi-tenant, Auth.js
 - [x] **Fase 1** — Core del board: posts, votos, comentarios, estados
 - [x] **Fase 2** — SDK de identidad JWT + priorización por revenue + boards privados
-- [ ] **Fase 3** — Roadmap kanban + changelog con notificaciones
+- [x] **Fase 3** — Roadmap kanban + changelog + emails de "Lanzado" (Resend)
 - [ ] **Fase 4** — Widget embebible < 30 KB
 - [ ] **Fase 5** — API pública + webhooks
 - [ ] **Fase 6** — Stripe + lanzamiento
