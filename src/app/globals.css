@@ -2,49 +2,71 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Echoboard — tokens del sistema de diseño (docs/design-system.md).
+ * Papel cálido + tinta casi negra + índigo eléctrico como única tinta de
+ * acción. El verde queda reservado a cifras de dinero (--revenue).
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: oklch(0.993 0.0024 95);
+  --foreground: oklch(0.19 0.014 265);
+  --card: oklch(0.998 0.0015 95);
+  --card-foreground: oklch(0.19 0.014 265);
+  --popover: oklch(0.998 0.0015 95);
+  --popover-foreground: oklch(0.19 0.014 265);
+  --primary: oklch(0.545 0.222 277);
+  --primary-foreground: oklch(0.985 0.005 95);
+  --secondary: oklch(0.962 0.006 95);
+  --secondary-foreground: oklch(0.25 0.02 265);
+  --muted: oklch(0.962 0.006 95);
+  --muted-foreground: oklch(0.5 0.016 265);
+  --accent: oklch(0.955 0.012 277);
+  --accent-foreground: oklch(0.3 0.06 277);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  --border: oklch(0.925 0.005 95);
+  --input: oklch(0.9 0.006 95);
+  --ring: oklch(0.545 0.222 277);
+  --radius: 0.75rem;
+
+  /* Verde MRR: exclusivo para dinero */
+  --revenue: oklch(0.6 0.145 160);
+
+  /* Sombras tintadas de índigo (nunca negro puro sobre el papel) */
+  --eb-shadow-soft:
+    0 1px 2px oklch(0.545 0.222 277 / 0.06),
+    0 8px 24px -12px oklch(0.545 0.222 277 / 0.12);
+  --eb-shadow-lift:
+    0 2px 4px oklch(0.545 0.222 277 / 0.08),
+    0 16px 48px -16px oklch(0.545 0.222 277 / 0.22);
+
+  /* Curva de la casa: frena como un objeto real */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.16 0.012 265);
+  --foreground: oklch(0.97 0.004 95);
+  --card: oklch(0.2 0.014 265);
+  --card-foreground: oklch(0.97 0.004 95);
+  --popover: oklch(0.2 0.014 265);
+  --popover-foreground: oklch(0.97 0.004 95);
+  --primary: oklch(0.72 0.16 277);
+  --primary-foreground: oklch(0.16 0.012 265);
+  --secondary: oklch(0.26 0.016 265);
+  --secondary-foreground: oklch(0.97 0.004 95);
+  --muted: oklch(0.26 0.016 265);
+  --muted-foreground: oklch(0.7 0.012 265);
+  --accent: oklch(0.3 0.04 277);
+  --accent-foreground: oklch(0.92 0.02 277);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.72 0.16 277);
+  --revenue: oklch(0.72 0.14 160);
+  --eb-shadow-soft: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px -12px oklch(0 0 0 / 0.5);
+  --eb-shadow-lift: 0 2px 4px oklch(0 0 0 / 0.35), 0 16px 48px -16px oklch(0 0 0 / 0.6);
 }
 
 @theme inline {
@@ -67,12 +89,16 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-revenue: var(--revenue);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+  --shadow-soft: var(--eb-shadow-soft);
+  --shadow-lift: var(--eb-shadow-lift);
 }
 
 @layer base {
@@ -81,5 +107,59 @@
   }
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: oklch(0.545 0.222 277 / 0.18);
+  }
+}
+
+@layer utilities {
+  /* Eyebrow editorial: abre cada sección de la landing */
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-[0.18em] text-primary;
+  }
+
+  /* Entradas de sección: fade + rise con la curva de la casa */
+  .rise {
+    opacity: 0;
+    transform: translateY(14px);
+    animation: eb-rise 0.7s var(--ease-out-soft) forwards;
+  }
+  .rise-1 { animation-delay: 0.07s; }
+  .rise-2 { animation-delay: 0.14s; }
+  .rise-3 { animation-delay: 0.22s; }
+  .rise-4 { animation-delay: 0.3s; }
+  .rise-5 { animation-delay: 0.38s; }
+
+  /* Elevación al hover con sombra tintada (transform + shadow, nunca layout) */
+  .hover-lift {
+    transition:
+      transform 0.25s var(--ease-out-soft),
+      box-shadow 0.25s var(--ease-out-soft);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--eb-shadow-lift);
+  }
+}
+
+@keyframes eb-rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .hover-lift,
+  .hover-lift:hover {
+    transition: none;
+    transform: none;
   }
 }
