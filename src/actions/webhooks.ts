@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { projects, webhookEndpoints } from "@/db/schema";
 import { generateWebhookSecret } from "@/lib/apikeys";
 import { requireProjectMember } from "@/lib/authz";
+import { getProjectOrganization, planAllows } from "@/lib/billing";
 import { WEBHOOK_EVENTS, type WebhookEvent } from "@/lib/webhooks";
 
 export type ActionState = { error: string } | undefined;
@@ -46,6 +47,13 @@ export async function createWebhookEndpoint(
   formData: FormData
 ): Promise<ActionState> {
   await requireProjectMember(projectId);
+
+  // Gate de plan: los webhooks en tiempo real son del plan Growth. Los
+  // endpoints existentes siguen entregando tras un downgrade.
+  const org = await getProjectOrganization(projectId);
+  if (!org || !planAllows(org.plan, "webhooks")) {
+    return { error: "Los webhooks requieren el plan Growth" };
+  }
 
   const parsed = endpointSchema.safeParse({
     url: formData.get("url"),

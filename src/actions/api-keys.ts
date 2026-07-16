@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { apiKeys, projects } from "@/db/schema";
 import { generateApiKey } from "@/lib/apikeys";
 import { requireProjectMember } from "@/lib/authz";
+import { getProjectOrganization, planAllows } from "@/lib/billing";
 
 export type CreateApiKeyState =
   | { error: string; plainKey?: never }
@@ -31,6 +32,13 @@ export async function createApiKey(
   formData: FormData
 ): Promise<CreateApiKeyState> {
   await requireProjectMember(projectId);
+
+  // Gate de plan: la API pública es de Starter en adelante. Las keys ya
+  // creadas siguen funcionando tras un downgrade; solo se bloquea crear más.
+  const org = await getProjectOrganization(projectId);
+  if (!org || !planAllows(org.plan, "api")) {
+    return { error: "La API pública requiere el plan Starter o Growth" };
+  }
 
   const parsed = keyNameSchema.safeParse(formData.get("name"));
   if (!parsed.success) return { error: parsed.error.issues[0].message };

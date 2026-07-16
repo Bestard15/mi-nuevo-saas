@@ -126,6 +126,16 @@ SHA-256; el plaintext se muestra una vez). Base: `/api/v1`, autenticación
 servidor cliente caído jamás ralentiza el producto. El secreto `whsec_…` y el estado de la
 última entrega se ven en el dashboard.
 
+## Facturación (Stripe)
+
+Precio plano por organización: **Free $0**, **Starter $19/mes** (desbloquea la API pública)
+y **Growth $49/mes** (añade webhooks). Checkout y Customer Portal de Stripe desde
+`/dashboard/<proyecto>/billing`; el plan lo escribe **solo** el webhook
+`POST /api/stripe/webhook` (firma verificada con `STRIPE_WEBHOOK_SECRET`), así el estado
+nunca diverge de lo que Stripe cobró. Configuración: `STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_GROWTH` — sin ellas, la app
+funciona íntegra en el plan Free.
+
 ## Roadmap del MVP
 
 - [x] **Fase 0** — Scaffold, esquema multi-tenant, Auth.js
@@ -134,4 +144,7 @@ servidor cliente caído jamás ralentiza el producto. El secreto `whsec_…` y e
 - [x] **Fase 3** — Roadmap kanban + changelog + emails de "Lanzado" (Resend)
 - [x] **Fase 4** — Widget embebible < 30 KB
 - [x] **Fase 5** — API REST pública (API keys) + webhooks firmados con HMAC
-- [ ] **Fase 6** — Stripe + lanzamiento
+- [x] **Fase 6** — Stripe (Checkout + Customer Portal, planes Free/$19/$49) + landing de venta
+
+**MVP completo.** Siguientes pasos naturales post-lanzamiento: deduplicación de posts por
+embeddings, informes semanales por email, integraciones (Slack, Linear, Intercom).

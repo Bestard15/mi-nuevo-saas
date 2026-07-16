@@ -111,6 +111,12 @@ export default async function ProjectAdminPage({
             API y webhooks
           </Link>
           <Link
+            href={`/dashboard/${project.slug}/billing`}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            Facturación
+          </Link>
+          <Link
             href={`/p/${project.slug}`}
             className="text-sm text-muted-foreground hover:underline"
           >

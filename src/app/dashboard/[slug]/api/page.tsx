@@ -11,6 +11,7 @@ import {
 import { db } from "@/db";
 import { apiKeys, projects, webhookEndpoints } from "@/db/schema";
 import { getSessionUserId, isProjectMember } from "@/lib/authz";
+import { getProjectOrganization, planAllows, PLANS } from "@/lib/billing";
 import { WEBHOOK_EVENTS } from "@/lib/webhooks";
 import { ActionForm } from "@/components/action-form";
 import { CreateApiKeyForm } from "@/components/dashboard/create-api-key-form";
@@ -41,6 +42,9 @@ export default async function ApiSettingsPage({
   const project = await db.query.projects.findFirst({ where: eq(projects.slug, slug) });
   if (!project) notFound();
   if (!(await isProjectMember(project.id, userId))) notFound();
+
+  const org = await getProjectOrganization(project.id);
+  const plan = org?.plan ?? "free";
 
   const [keys, endpoints] = await Promise.all([
     db.query.apiKeys.findMany({
@@ -76,6 +80,15 @@ export default async function ApiSettingsPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          {!planAllows(plan, "api") ? (
+            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              La API pública está disponible desde el plan <strong>Starter</strong> (estás en{" "}
+              {PLANS[plan].name}).{" "}
+              <Link href={`/dashboard/${slug}/billing`} className="font-medium underline">
+                Mejorar plan →
+              </Link>
+            </p>
+          ) : null}
           <CreateApiKeyForm projectId={project.id} />
 
           {keys.length > 0 ? (
@@ -129,6 +142,15 @@ export default async function ApiSettingsPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          {!planAllows(plan, "webhooks") ? (
+            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              Los webhooks en tiempo real son del plan <strong>Growth</strong> (estás en{" "}
+              {PLANS[plan].name}).{" "}
+              <Link href={`/dashboard/${slug}/billing`} className="font-medium underline">
+                Mejorar plan →
+              </Link>
+            </p>
+          ) : null}
           <ActionForm
             action={createWebhookEndpoint.bind(null, project.id)}
             className="flex flex-col gap-3 rounded-lg border p-3"

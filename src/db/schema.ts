@@ -72,12 +72,21 @@ export const verificationTokens = pgTable(
 
 export const memberRoleEnum = pgEnum("member_role", ["owner", "admin", "member"]);
 
+export const billingPlanEnum = pgEnum("billing_plan", ["free", "starter", "growth"]);
+
 export const organizations = pgTable("organization", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  // Billing lives on the organization (flat pricing — never per tracked user).
+  // The plan is only ever written by the Stripe webhook (single source of
+  // truth) so UI state can't drift from what Stripe actually billed.
+  plan: billingPlanEnum("plan").notNull().default("free"),
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  planRenewsAt: timestamp("plan_renews_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
