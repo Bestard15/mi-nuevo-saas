@@ -2,13 +2,13 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/db";
-import { endUsers, projects } from "@/db/schema";
+import { projects } from "@/db/schema";
+import { upsertEndUser } from "@/lib/end-users";
 import {
   SSO_SESSION_TTL_SECONDS,
   signEndUserSession,
   ssoCookieName,
   verifyIdentifyToken,
-  type IdentifyPayload,
 } from "@/lib/sso";
 
 /**
@@ -34,38 +34,10 @@ async function identify(projectSlug: string, token: string) {
   const payload = await verifyIdentifyToken(token, project.ssoSecret);
   if (!payload) return { error: "Token inválido o expirado", status: 401 } as const;
 
+  // Shared with the public API: updates only the attributes the token carries.
   const endUser = await upsertEndUser(project.id, payload);
   const session = await signEndUserSession(endUser.id, project.id);
   return { project, endUser, session } as const;
-}
-
-async function upsertEndUser(projectId: string, payload: IdentifyPayload) {
-  const values = {
-    projectId,
-    externalId: payload.id,
-    email: payload.email ?? null,
-    name: payload.name ?? null,
-    avatarUrl: payload.avatarUrl ?? null,
-    company: payload.company ?? null,
-    plan: payload.plan ?? null,
-    mrr: payload.mrr !== undefined ? payload.mrr.toFixed(2) : "0",
-  };
-  const [endUser] = await db
-    .insert(endUsers)
-    .values(values)
-    .onConflictDoUpdate({
-      target: [endUsers.projectId, endUsers.externalId],
-      set: {
-        email: values.email,
-        name: values.name,
-        avatarUrl: values.avatarUrl,
-        company: values.company,
-        plan: values.plan,
-        mrr: values.mrr,
-      },
-    })
-    .returning();
-  return endUser;
 }
 
 function setSessionCookie(response: NextResponse, projectId: string, session: string) {

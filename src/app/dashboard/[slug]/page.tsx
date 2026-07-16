@@ -105,6 +105,12 @@ export default async function ProjectAdminPage({
             Changelog
           </Link>
           <Link
+            href={`/dashboard/${project.slug}/api`}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            API y webhooks
+          </Link>
+          <Link
             href={`/p/${project.slug}`}
             className="text-sm text-muted-foreground hover:underline"
           >

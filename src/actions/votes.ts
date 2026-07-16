@@ -1,20 +1,20 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
-import { posts, votes } from "@/db/schema";
+import { posts } from "@/db/schema";
 import { getViewerContext } from "@/lib/authz";
 import { resolveOrCreateEndUser } from "@/lib/viewer";
+import { addVote, removeVote, type Voter } from "@/lib/votes-core";
+import { dispatchWebhookEvent } from "@/lib/webhooks";
 
 /**
- * Toggles the current viewer's vote on a post and keeps the post's
- * denormalized aggregates (vote_count, revenue_impact) in sync, atomically.
- *
- * Each vote stores an mrr_snapshot (the voter's MRR at vote time); the
- * post's revenue_impact is the running sum of those snapshots, which is what
- * powers "prioritize by revenue" without any joins at read time.
+ * Toggles the current viewer's vote on a post. The snapshot/aggregate
+ * invariant lives in lib/votes-core (shared with the public API): votes
+ * store an mrr_snapshot and the post's vote_count / revenue_impact move
+ * atomically with the vote row.
  */
 export async function toggleVote(postId: string): Promise<void> {
   const post = await db.query.posts.findFirst({
@@ -30,57 +30,28 @@ export async function toggleVote(postId: string): Promise<void> {
   }
 
   // Resolve the voter identity: team member (userId) or end user (endUserId).
-  let voterColumn: typeof votes.userId | typeof votes.endUserId;
-  let voterId: string;
+  let voter: Voter;
   let mrrSnapshot = "0";
+  let voterExternalId: string | null = null;
   if (isMember && userId) {
-    voterColumn = votes.userId;
-    voterId = userId;
+    voter = { userId };
   } else {
     const endUser = await resolveOrCreateEndUser(project.id);
-    voterColumn = votes.endUserId;
-    voterId = endUser.id;
+    voter = { endUserId: endUser.id };
     mrrSnapshot = endUser.mrr;
+    voterExternalId = endUser.externalId;
   }
 
-  await db.transaction(async (tx) => {
-    const existing = await tx
-      .delete(votes)
-      .where(and(eq(votes.postId, postId), eq(voterColumn, voterId)))
-      .returning({ mrrSnapshot: votes.mrrSnapshot });
+  const removal = await removeVote(postId, voter);
+  const result = removal.removed ? removal : await addVote(postId, voter, mrrSnapshot);
 
-    if (existing.length > 0) {
-      // Un-vote: subtract exactly what this vote added when it was cast.
-      await tx
-        .update(posts)
-        .set({
-          voteCount: sql`greatest(${posts.voteCount} - 1, 0)`,
-          revenueImpact: sql`greatest(${posts.revenueImpact} - cast(${existing[0].mrrSnapshot} as numeric), 0)`,
-        })
-        .where(eq(posts.id, postId));
-      return;
-    }
-
-    const inserted = await tx
-      .insert(votes)
-      .values(
-        voterColumn === votes.userId
-          ? { postId, userId: voterId, mrrSnapshot }
-          : { postId, endUserId: voterId, mrrSnapshot }
-      )
-      .onConflictDoNothing()
-      .returning({ id: votes.id });
-
-    // A concurrent request may have inserted the vote first; only count ours.
-    if (inserted.length > 0) {
-      await tx
-        .update(posts)
-        .set({
-          voteCount: sql`${posts.voteCount} + 1`,
-          revenueImpact: sql`${posts.revenueImpact} + cast(${mrrSnapshot} as numeric)`,
-        })
-        .where(eq(posts.id, postId));
-    }
+  dispatchWebhookEvent(project.id, "post.voted", {
+    postId,
+    postTitle: post.title,
+    action: removal.removed ? "removed" : "added",
+    voteCount: result.voteCount,
+    revenueImpact: result.revenueImpact,
+    endUserExternalId: voterExternalId,
   });
 
   revalidatePath(`/p/${project.slug}`);

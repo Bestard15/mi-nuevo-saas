@@ -8,6 +8,7 @@ import { comments, posts } from "@/db/schema";
 import { getViewerContext, requireProjectMember } from "@/lib/authz";
 import { resolveOrCreateEndUser } from "@/lib/viewer";
 import { addCommentSchema, firstIssue } from "@/lib/validators";
+import { dispatchWebhookEvent } from "@/lib/webhooks";
 
 export type ActionState = { error: string } | undefined;
 
@@ -35,21 +36,34 @@ export async function addComment(
     return { error: "Este board es privado" };
   }
 
+  let commentId: string;
+  let isTeamReply = false;
+  let authorExternalId: string | null = null;
   if (isMember && userId) {
-    await db.insert(comments).values({
-      postId,
-      body: parsed.data.body,
-      authorUserId: userId,
-      isTeamReply: true,
-    });
+    const [row] = await db
+      .insert(comments)
+      .values({ postId, body: parsed.data.body, authorUserId: userId, isTeamReply: true })
+      .returning({ id: comments.id });
+    commentId = row.id;
+    isTeamReply = true;
   } else {
     const endUser = await resolveOrCreateEndUser(project.id);
-    await db.insert(comments).values({
-      postId,
-      body: parsed.data.body,
-      authorEndUserId: endUser.id,
-    });
+    const [row] = await db
+      .insert(comments)
+      .values({ postId, body: parsed.data.body, authorEndUserId: endUser.id })
+      .returning({ id: comments.id });
+    commentId = row.id;
+    authorExternalId = endUser.externalId;
   }
+
+  dispatchWebhookEvent(project.id, "comment.created", {
+    commentId,
+    postId,
+    postTitle: post.title,
+    body: parsed.data.body,
+    isTeamReply,
+    authorEndUserExternalId: authorExternalId,
+  });
 
   revalidatePath(`/p/${project.slug}/posts/${postId}`);
   return undefined;

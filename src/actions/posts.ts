@@ -1,15 +1,16 @@
 "use server";
 
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { boards, endUsers, posts, statuses, votes } from "@/db/schema";
+import { boards, posts, statuses } from "@/db/schema";
 import { getViewerContext, requireProjectMember } from "@/lib/authz";
-import { sendShippedEmails } from "@/lib/email";
+import { notifyShipped } from "@/lib/shipped";
 import { resolveOrCreateEndUser } from "@/lib/viewer";
 import { createPostSchema, firstIssue, updatePostSchema } from "@/lib/validators";
+import { dispatchWebhookEvent } from "@/lib/webhooks";
 
 export type ActionState = { error: string } | undefined;
 
@@ -56,6 +57,7 @@ export async function createPost(
   });
 
   let postId = "";
+  let authorExternalId: string | null = null;
   if (isMember && userId) {
     const [post] = await db
       .insert(posts)
@@ -81,7 +83,18 @@ export async function createPost(
       })
       .returning({ id: posts.id });
     postId = post.id;
+    authorExternalId = endUser.externalId;
   }
+
+  dispatchWebhookEvent(board.projectId, "post.created", {
+    postId,
+    title: parsed.data.title,
+    content: parsed.data.content || null,
+    boardSlug: board.slug,
+    status: defaultStatus ? { id: defaultStatus.id, name: defaultStatus.name } : null,
+    authorEndUserExternalId: authorExternalId,
+    source: "board",
+  });
 
   revalidatePath(`/p/${board.project.slug}`);
   revalidatePath(`/embed/${board.project.slug}`);
@@ -166,6 +179,15 @@ export async function setPostStatus(postId: string, statusId: string): Promise<v
     .set({ statusId: status.id, updatedAt: new Date() })
     .where(eq(posts.id, postId));
 
+  if (post.statusId !== status.id) {
+    dispatchWebhookEvent(post.board.projectId, "post.status_changed", {
+      postId: post.id,
+      title: post.title,
+      previousStatusId: post.statusId,
+      status: { id: status.id, name: status.name, category: status.category },
+    });
+  }
+
   // First transition to "shipped": close the loop with the people who asked.
   if (status.category === "shipped" && !post.shippedNotifiedAt) {
     await notifyShipped(post.id, post.title, post.board.project, post.authorEndUser?.email);
@@ -175,37 +197,4 @@ export async function setPostStatus(postId: string, statusId: string): Promise<v
   revalidatePath(`/p/${slug}`);
   revalidatePath(`/p/${slug}/posts/${postId}`);
   revalidatePath(`/p/${slug}/roadmap`);
-}
-
-async function notifyShipped(
-  postId: string,
-  postTitle: string,
-  project: { name: string; slug: string },
-  authorEmail: string | null | undefined
-): Promise<void> {
-  const voterRows = await db
-    .select({ email: endUsers.email })
-    .from(votes)
-    .innerJoin(endUsers, eq(votes.endUserId, endUsers.id))
-    .where(and(eq(votes.postId, postId), isNotNull(endUsers.email)));
-
-  const recipients = voterRows
-    .map((r) => r.email)
-    .filter((e): e is string => Boolean(e));
-  if (authorEmail) recipients.push(authorEmail);
-
-  await sendShippedEmails({
-    projectName: project.name,
-    projectSlug: project.slug,
-    postTitle,
-    postId,
-    recipients,
-  });
-
-  // Mark as notified regardless of send outcome so status toggling never
-  // spams voters; a failed provider call is logged, not retried onto users.
-  await db
-    .update(posts)
-    .set({ shippedNotifiedAt: new Date() })
-    .where(eq(posts.id, postId));
 }

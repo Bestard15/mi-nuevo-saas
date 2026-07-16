@@ -105,6 +105,27 @@ El widget renderiza `/embed/<proyecto>` en un iframe; `identify()` enruta el ifr
 toca el navegador). Demo local en `/widget-demo.html`. Build manual: `npm run widget:build`
 (también se ejecuta dentro de `npm run build`).
 
+## API pública y webhooks
+
+Cada proyecto genera **API keys** en `/dashboard/<proyecto>/api` (solo se almacena el hash
+SHA-256; el plaintext se muestra una vez). Base: `/api/v1`, autenticación
+`Authorization: Bearer eb_…`.
+
+| Endpoint | Descripción |
+|---|---|
+| `GET /api/v1/boards` · `GET /api/v1/statuses` | Boards y estados del proyecto |
+| `GET /api/v1/posts?sort=top\|new\|revenue` | Posts con `voteCount` y `revenueImpact` |
+| `POST /api/v1/posts` | Crear post; `author` opcional se upsertea con sus atributos de revenue |
+| `GET/PATCH/DELETE /api/v1/posts/{id}` | Leer, editar (incl. `statusId` → dispara emails de Lanzado) o borrar |
+| `POST/DELETE /api/v1/posts/{id}/votes` | Votar/quitar voto en nombre de `{ user: { id, mrr, … } }` |
+
+**Webhooks salientes** (`post.created`, `post.status_changed`, `post.voted`,
+`comment.created`): cada entrega va firmada estilo Stripe con
+`X-Echoboard-Signature: t=<ts>,v1=<hmac_sha256(secret, "<ts>.<body>")>`, timeout de 5 s y
+3 reintentos con backoff; la entrega corre tras responder al usuario (`after()`), así un
+servidor cliente caído jamás ralentiza el producto. El secreto `whsec_…` y el estado de la
+última entrega se ven en el dashboard.
+
 ## Roadmap del MVP
 
 - [x] **Fase 0** — Scaffold, esquema multi-tenant, Auth.js
@@ -112,5 +133,5 @@ toca el navegador). Demo local en `/widget-demo.html`. Build manual: `npm run wi
 - [x] **Fase 2** — SDK de identidad JWT + priorización por revenue + boards privados
 - [x] **Fase 3** — Roadmap kanban + changelog + emails de "Lanzado" (Resend)
 - [x] **Fase 4** — Widget embebible < 30 KB
-- [ ] **Fase 5** — API pública + webhooks
+- [x] **Fase 5** — API REST pública (API keys) + webhooks firmados con HMAC
 - [ ] **Fase 6** — Stripe + lanzamiento

@@ -294,6 +294,56 @@ export const changelogEntries = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Public API + webhooks (Fase 5)
+// ---------------------------------------------------------------------------
+
+// API keys authenticate the public REST API (Authorization: Bearer eb_...).
+// Only a SHA-256 hash is stored; the plaintext is shown once at creation.
+// The prefix (first chars) lets the dashboard display which key is which.
+export const apiKeys = pgTable(
+  "api_key",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    prefix: text("prefix").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    lastUsedAt: timestamp("last_used_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (k) => [index("api_key_project_idx").on(k.projectId)]
+);
+
+// Outbound webhook endpoints. Every delivery is signed with the endpoint's
+// secret (HMAC-SHA256 over "<timestamp>.<body>") so receivers can verify
+// authenticity and reject replays.
+export const webhookEndpoints = pgTable(
+  "webhook_endpoint",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    // Subscribed event names ("post.created", ...). Empty array = all events.
+    events: text("events").array().notNull().default([]),
+    isActive: boolean("is_active").notNull().default(true),
+    // Observability for the dashboard: outcome of the most recent delivery.
+    lastStatus: integer("last_status"),
+    lastAttemptAt: timestamp("last_attempt_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (w) => [index("webhook_project_idx").on(w.projectId)]
+);
+
+// ---------------------------------------------------------------------------
 // Relations (drizzle query API)
 // ---------------------------------------------------------------------------
 
@@ -319,6 +369,16 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   statuses: many(statuses),
   endUsers: many(endUsers),
   changelogEntries: many(changelogEntries),
+  apiKeys: many(apiKeys),
+  webhookEndpoints: many(webhookEndpoints),
+}));
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  project: one(projects, { fields: [apiKeys.projectId], references: [projects.id] }),
+}));
+
+export const webhookEndpointsRelations = relations(webhookEndpoints, ({ one }) => ({
+  project: one(projects, { fields: [webhookEndpoints.projectId], references: [projects.id] }),
 }));
 
 export const changelogEntriesRelations = relations(changelogEntries, ({ one }) => ({
