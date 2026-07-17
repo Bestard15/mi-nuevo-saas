@@ -10,8 +10,8 @@ import { getSessionUserId, isProjectMember } from "@/lib/authz";
 import { assessChurnRisk } from "@/lib/churn";
 import { StatusSelect } from "@/components/board/status-select";
 import { ChurnBadge } from "@/components/dashboard/churn-badge";
+import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatMoney } from "@/lib/utils";
 
@@ -125,9 +125,9 @@ export default async function ProjectAdminPage({
             Ver board público →
           </Link>
           <form action={setProjectPrivacy.bind(null, project.id, !project.isPrivate)}>
-            <Button type="submit" variant="outline" size="sm">
+            <SubmitButton variant="outline" size="sm" pendingText="Aplicando…">
               {project.isPrivate ? "Hacer público" : "Hacer privado"}
-            </Button>
+            </SubmitButton>
           </form>
         </div>
       </div>
@@ -259,9 +259,9 @@ export default async function ProjectAdminPage({
                 {project.ssoSecret}
               </pre>
               <form action={rotateSsoSecret.bind(null, project.id)} className="mt-2">
-                <Button type="submit" variant="outline" size="sm">
+                <SubmitButton variant="outline" size="sm" pendingText="Rotando…">
                   Rotar secreto
-                </Button>
+                </SubmitButton>
               </form>
             </div>
             <div>

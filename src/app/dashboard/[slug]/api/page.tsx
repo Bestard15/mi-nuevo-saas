@@ -15,8 +15,8 @@ import { getProjectOrganization, planAllows, PLANS } from "@/lib/billing";
 import { WEBHOOK_EVENTS } from "@/lib/webhooks";
 import { ActionForm } from "@/components/action-form";
 import { CreateApiKeyForm } from "@/components/dashboard/create-api-key-form";
+import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
@@ -116,9 +116,9 @@ export default async function ApiSettingsPage({
                       </td>
                       <td className="px-3 py-2 text-right">
                         <form action={revokeApiKey.bind(null, key.id)}>
-                          <Button type="submit" variant="destructive" size="sm">
+                          <SubmitButton variant="destructive" size="sm" pendingText="Revocando…">
                             Revocar
-                          </Button>
+                          </SubmitButton>
                         </form>
                       </td>
                     </tr>
@@ -177,9 +177,9 @@ export default async function ApiSettingsPage({
                 </label>
               ))}
             </fieldset>
-            <Button type="submit" size="sm" className="self-start">
+            <SubmitButton size="sm" className="self-start" pendingText="Añadiendo…">
               Añadir endpoint
-            </Button>
+            </SubmitButton>
           </ActionForm>
 
           {endpoints.length === 0 ? (
@@ -198,14 +198,14 @@ export default async function ApiSettingsPage({
                   </div>
                   <div className="flex items-center gap-2">
                     <form action={toggleWebhookEndpoint.bind(null, endpoint.id)}>
-                      <Button type="submit" variant="outline" size="sm">
+                      <SubmitButton variant="outline" size="sm" pendingText="Aplicando…">
                         {endpoint.isActive ? "Pausar" : "Reanudar"}
-                      </Button>
+                      </SubmitButton>
                     </form>
                     <form action={deleteWebhookEndpoint.bind(null, endpoint.id)}>
-                      <Button type="submit" variant="destructive" size="sm">
+                      <SubmitButton variant="destructive" size="sm" pendingText="Eliminando…">
                         Eliminar
-                      </Button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </div>

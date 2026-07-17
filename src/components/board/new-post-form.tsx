@@ -1,6 +1,6 @@
 import { createPost } from "@/actions/posts";
 import { ActionForm } from "@/components/action-form";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,9 +28,9 @@ export function NewPostForm({
             maxLength={5000}
             rows={3}
           />
-          <Button type="submit" className="self-end">
+          <SubmitButton className="self-end" pendingText="Publicando…">
             Publicar
-          </Button>
+          </SubmitButton>
         </ActionForm>
       </CardContent>
     </Card>

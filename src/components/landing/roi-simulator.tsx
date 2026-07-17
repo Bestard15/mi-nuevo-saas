@@ -133,7 +133,7 @@ export function RoiSimulator() {
       {/* Resultados: el libro de cuentas del visitante */}
       <div className="flex flex-col p-7">
         <dl className="flex flex-col">
-          <div className="flex items-baseline justify-between gap-4 pb-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pb-4">
             <dt className="text-sm text-muted-foreground">
               Horas de desarrollo desperdiciadas
             </dt>
@@ -144,7 +144,7 @@ export function RoiSimulator() {
               </span>
             </dd>
           </div>
-          <div className="flex items-baseline justify-between gap-4 border-t border-border/70 py-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-border/70 py-4">
             <dt className="text-sm text-muted-foreground">
               Margen Silencioso{" "}
               <span className="block text-xs">dinero de clientes de pago que estás ignorando</span>

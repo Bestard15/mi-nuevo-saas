@@ -37,7 +37,12 @@ export function VoteButton({
         count: Math.max(optimistic.count + (optimistic.hasVoted ? -1 : 1), 0),
         hasVoted: !optimistic.hasVoted,
       });
-      await toggleVote(postId);
+      try {
+        await toggleVote(postId);
+      } catch {
+        // Boards privados / sesión caducada: el optimista se revierte solo
+        // al terminar la transición — sin pantallazo de error.
+      }
     });
   };
 
@@ -45,11 +50,13 @@ export function VoteButton({
     <button
       type="button"
       onClick={vote}
+      disabled={pending}
       aria-pressed={optimistic.hasVoted}
       aria-busy={pending}
       title={optimistic.hasVoted ? "Quitar voto" : "Votar"}
       className={cn(
         "flex flex-col items-center rounded-lg border bg-background transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "disabled:pointer-events-none",
         "hover:-translate-y-px hover:border-ring/40 hover:shadow-soft",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1",
         "active:translate-y-0 active:scale-[0.98]",

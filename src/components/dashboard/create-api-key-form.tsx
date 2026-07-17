@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useActionState, useState } from "react";
 
 import { createApiKey, type CreateApiKeyState } from "@/actions/api-keys";
@@ -27,8 +28,15 @@ export function CreateApiKeyForm({ projectId }: { projectId: string }) {
           maxLength={100}
           className="h-9 max-w-xs"
         />
-        <Button type="submit" size="sm" disabled={isPending}>
-          {isPending ? "Creando…" : "Crear API key"}
+        <Button type="submit" size="sm" disabled={isPending} aria-busy={isPending}>
+          {isPending ? (
+            <>
+              <Loader2 className="animate-spin" aria-hidden />
+              Creando…
+            </>
+          ) : (
+            "Crear API key"
+          )}
         </Button>
       </form>
 

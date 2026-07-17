@@ -13,8 +13,8 @@ import { db } from "@/db";
 import { changelogEntries, projects } from "@/db/schema";
 import { getSessionUserId, isProjectMember } from "@/lib/authz";
 import { ActionForm } from "@/components/action-form";
+import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -77,9 +77,9 @@ export default async function ChangelogAdminPage({
               maxLength={20000}
               rows={4}
             />
-            <Button type="submit" className="self-end">
+            <SubmitButton className="self-end" pendingText="Guardando…">
               Guardar borrador
-            </Button>
+            </SubmitButton>
           </ActionForm>
         </CardContent>
       </Card>
@@ -106,21 +106,21 @@ export default async function ChangelogAdminPage({
                 <div className="flex items-center gap-2">
                   {entry.publishedAt ? (
                     <form action={unpublishChangelogEntry.bind(null, entry.id)}>
-                      <Button type="submit" variant="outline" size="sm">
+                      <SubmitButton variant="outline" size="sm" pendingText="Despublicando…">
                         Despublicar
-                      </Button>
+                      </SubmitButton>
                     </form>
                   ) : (
                     <form action={publishChangelogEntry.bind(null, entry.id)}>
-                      <Button type="submit" size="sm">
+                      <SubmitButton size="sm" pendingText="Publicando…">
                         Publicar
-                      </Button>
+                      </SubmitButton>
                     </form>
                   )}
                   <form action={deleteChangelogEntry.bind(null, entry.id)}>
-                    <Button type="submit" variant="destructive" size="sm">
+                    <SubmitButton variant="destructive" size="sm" pendingText="Eliminando…">
                       Eliminar
-                    </Button>
+                    </SubmitButton>
                   </form>
                 </div>
               </div>
@@ -137,9 +137,9 @@ export default async function ChangelogAdminPage({
                 >
                   <Input name="title" defaultValue={entry.title} required minLength={3} maxLength={200} />
                   <Textarea name="body" defaultValue={entry.body} required maxLength={20000} rows={5} />
-                  <Button type="submit" size="sm" className="self-start">
+                  <SubmitButton size="sm" className="self-start" pendingText="Guardando…">
                     Guardar cambios
-                  </Button>
+                  </SubmitButton>
                 </ActionForm>
               </details>
             </div>

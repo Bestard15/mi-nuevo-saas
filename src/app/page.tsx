@@ -121,7 +121,7 @@ export default function Home() {
         <div className="relative mx-auto grid max-w-5xl items-center gap-14 px-6 pb-24 pt-20 md:grid-cols-[7fr_5fr] md:pt-28">
           <div className="flex flex-col items-start gap-6">
             <p className="eyebrow rise">Priorización por revenue</p>
-            <h1 className="rise rise-1 font-display text-5xl font-medium leading-[1.05] tracking-[-0.02em] sm:text-[4rem]">
+            <h1 className="rise rise-1 font-display text-[2.5rem] font-medium leading-[1.08] tracking-[-0.02em] sm:text-5xl sm:leading-[1.05] md:text-[4rem]">
               Prioriza tu roadmap por{" "}
               <em className="text-primary">MRR real</em>, no por votos
             </h1>
@@ -225,14 +225,14 @@ export default function Home() {
           Es como Canny, pero del lado de <em className="text-primary">tu margen</em>
         </h2>
         <div className="mx-auto mt-14 max-w-3xl">
-          <div className="grid grid-cols-2 gap-x-8 pb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="hidden grid-cols-2 gap-x-8 pb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground sm:grid">
             <span>Lo habitual</span>
             <span className="text-foreground">Echoboard</span>
           </div>
           {COMPARISON.map((row) => (
             <div
               key={row.us}
-              className="grid grid-cols-2 gap-x-8 border-t border-border/70 py-5 text-sm"
+              className="grid gap-x-8 gap-y-2 border-t border-border/70 py-5 text-sm sm:grid-cols-2"
             >
               <p className="flex items-start gap-2.5 text-muted-foreground">
                 <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden />

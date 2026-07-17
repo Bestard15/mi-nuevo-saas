@@ -9,6 +9,7 @@ import { projects } from "@/db/schema";
 import { getSessionUserId, isProjectMember } from "@/lib/authz";
 import { getProjectOrganization, PLANS, type BillingPlan } from "@/lib/billing";
 import { ActionForm } from "@/components/action-form";
+import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -114,9 +115,9 @@ export default async function BillingPage({
                       action={createCheckoutSession.bind(null, org.id, slug, planKey)}
                       className="flex flex-col gap-2"
                     >
-                      <Button type="submit" className="w-full">
+                      <SubmitButton className="w-full" pendingText="Abriendo checkout…">
                         Mejorar a {plan.name}
-                      </Button>
+                      </SubmitButton>
                     </ActionForm>
                   )}
                 </div>
@@ -139,9 +140,9 @@ export default async function BillingPage({
             action={createPortalSession.bind(null, org.id, slug)}
             className="flex flex-col gap-2"
           >
-            <Button type="submit" variant="outline" className="self-start">
+            <SubmitButton variant="outline" className="self-start" pendingText="Abriendo portal…">
               Gestionar suscripción
-            </Button>
+            </SubmitButton>
           </ActionForm>
         </CardContent>
       </Card>
