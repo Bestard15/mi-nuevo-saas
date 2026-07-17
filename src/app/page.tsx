@@ -378,19 +378,45 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-border/70">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-6 py-8 text-sm text-muted-foreground">
-          <span className="flex items-center gap-2">
-            <span aria-hidden className="h-2 w-2 rounded-full bg-primary/60" />
-            © {new Date().getFullYear()} Echoboard
-          </span>
-          <div className="flex gap-5">
-            <Link href="/p/demo" className="transition-colors duration-150 hover:text-foreground">
-              Demo
-            </Link>
-            <Link href="/login" className="transition-colors duration-150 hover:text-foreground">
-              Entrar
-            </Link>
+        <div className="mx-auto max-w-5xl px-6 py-8 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <span className="flex items-center gap-2">
+              <span aria-hidden className="h-2 w-2 rounded-full bg-primary/60" />
+              © {new Date().getFullYear()} Echoboard. Un producto de UPDATA LINK, S.L. Todos
+              los derechos reservados.
+            </span>
+            <div className="flex gap-5">
+              <Link href="/p/demo" className="transition-colors duration-150 hover:text-foreground">
+                Demo
+              </Link>
+              <Link href="/login" className="transition-colors duration-150 hover:text-foreground">
+                Entrar
+              </Link>
+            </div>
           </div>
+          <nav
+            aria-label="Enlaces legales"
+            className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-border/60 pt-4 text-xs"
+          >
+            <Link
+              href="/legal/aviso-legal"
+              className="transition-colors duration-150 hover:text-foreground hover:underline"
+            >
+              Aviso Legal
+            </Link>
+            <Link
+              href="/legal/privacidad"
+              className="transition-colors duration-150 hover:text-foreground hover:underline"
+            >
+              Política de Privacidad
+            </Link>
+            <Link
+              href="/legal/cookies"
+              className="transition-colors duration-150 hover:text-foreground hover:underline"
+            >
+              Política de Cookies
+            </Link>
+          </nav>
         </div>
       </footer>
     </main>
