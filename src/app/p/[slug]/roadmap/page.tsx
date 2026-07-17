@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { boards, posts, projects, statuses } from "@/db/schema";
 import { getViewerContext } from "@/lib/authz";
+import { assessChurnRisk } from "@/lib/churn";
+import { ChurnBadge } from "@/components/dashboard/churn-badge";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatMoney } from "@/lib/utils";
 
@@ -147,33 +149,43 @@ export default async function RoadmapPage({
                     El equipo está tramando algo.
                   </p>
                 ) : (
-                  items.map((post) => (
-                    <Link
-                      key={post.id}
-                      href={`/p/${slug}/posts/${post.id}`}
-                      className={cn(
-                        "group block rounded-xl border bg-card p-4 shadow-soft",
-                        "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                        "hover:-translate-y-0.5 hover:border-ring/30 hover:shadow-lift",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-                        "active:translate-y-0 active:scale-[0.99]"
-                      )}
-                    >
-                      <p className="font-medium leading-snug transition-colors duration-150 group-hover:text-primary">
-                        {post.title}
-                      </p>
-                      <p className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="font-mono tabular-nums">
-                          ▲ {post.voteCount}
-                        </span>
-                        {isMember && Number(post.revenueImpact) > 0 ? (
-                          <span className="font-mono font-medium tabular-nums text-revenue">
-                            {formatMoney(post.revenueImpact)} MRR
+                  items.map((post) => {
+                    const churn = isMember
+                      ? assessChurnRisk({
+                          revenueImpact: post.revenueImpact,
+                          updatedAt: post.updatedAt,
+                          statusCategory: status.category,
+                        })
+                      : null;
+                    return (
+                      <Link
+                        key={post.id}
+                        href={`/p/${slug}/posts/${post.id}`}
+                        className={cn(
+                          "group block rounded-xl border bg-card p-4 shadow-soft",
+                          "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                          "hover:-translate-y-0.5 hover:border-ring/30 hover:shadow-lift",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                          "active:translate-y-0 active:scale-[0.99]"
+                        )}
+                      >
+                        <p className="font-medium leading-snug transition-colors duration-150 group-hover:text-primary">
+                          {post.title}
+                        </p>
+                        <p className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                          <span className="font-mono tabular-nums">
+                            ▲ {post.voteCount}
                           </span>
-                        ) : null}
-                      </p>
-                    </Link>
-                  ))
+                          {isMember && Number(post.revenueImpact) > 0 ? (
+                            <span className="font-mono font-medium tabular-nums text-revenue">
+                              {formatMoney(post.revenueImpact)} MRR
+                            </span>
+                          ) : null}
+                          {churn ? <ChurnBadge risk={churn} /> : null}
+                        </p>
+                      </Link>
+                    );
+                  })
                 )}
               </div>
             </section>

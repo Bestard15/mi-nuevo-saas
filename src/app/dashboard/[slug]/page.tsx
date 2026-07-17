@@ -7,7 +7,9 @@ import { setPostStatus } from "@/actions/posts";
 import { db } from "@/db";
 import { boards, endUsers, posts, projects, statuses } from "@/db/schema";
 import { getSessionUserId, isProjectMember } from "@/lib/authz";
+import { assessChurnRisk } from "@/lib/churn";
 import { StatusSelect } from "@/components/board/status-select";
+import { ChurnBadge } from "@/components/dashboard/churn-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -196,15 +198,24 @@ export default async function ProjectAdminPage({
                   </td>
                 </tr>
               ) : (
-                rows.map(({ post, boardName, status }) => (
+                rows.map(({ post, boardName, status }) => {
+                  const churn = assessChurnRisk({
+                    revenueImpact: post.revenueImpact,
+                    updatedAt: post.updatedAt,
+                    statusCategory: status?.category,
+                  });
+                  return (
                   <tr key={post.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="max-w-md px-4 py-2">
-                      <Link
-                        href={`/p/${project.slug}/posts/${post.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {post.title}
-                      </Link>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/p/${project.slug}/posts/${post.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {post.title}
+                        </Link>
+                        {churn ? <ChurnBadge risk={churn} /> : null}
+                      </span>
                     </td>
                     <td className="px-4 py-2 text-muted-foreground">{boardName}</td>
                     <td className="px-4 py-2">
@@ -224,7 +235,8 @@ export default async function ProjectAdminPage({
                       {formatMoney(post.revenueImpact)}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

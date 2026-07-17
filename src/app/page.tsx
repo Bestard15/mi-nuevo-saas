@@ -3,6 +3,7 @@ import { ArrowRight, Check, X } from "lucide-react";
 import Link from "next/link";
 
 import { PLANS, type BillingPlan } from "@/lib/billing";
+import { RoiSimulator } from "@/components/landing/roi-simulator";
 import { buttonVariants } from "@/components/ui/button";
 import { cn, formatMoney } from "@/lib/utils";
 
@@ -243,6 +244,27 @@ export default function Home() {
               </p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Simulador de ROI */}
+      <section className="relative border-t border-border/70" id="roi">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-[-8%] top-10 h-[360px] w-[360px] rounded-full opacity-[0.06] blur-3xl"
+          style={{ background: "radial-gradient(circle, oklch(0.6 0.145 160), transparent 70%)" }}
+        />
+        <div className="relative mx-auto max-w-5xl px-6 py-24 md:py-28">
+          <p className="eyebrow text-center">Haz tus cuentas</p>
+          <h2 className="mt-4 text-center font-display text-3xl font-medium tracking-[-0.02em] sm:text-4xl">
+            ¿Cuánto te cuesta priorizar <em className="text-primary">a ciegas</em>?
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
+            Mueve los sliders con tu volumen real y mira el libro de cuentas de tu backlog.
+          </p>
+          <div className="mt-12">
+            <RoiSimulator />
+          </div>
         </div>
       </section>
 

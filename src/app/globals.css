@@ -136,6 +136,59 @@
     animation: eb-float 7s ease-in-out infinite;
   }
 
+  /* Slider del simulador de ROI: raíl hairline, pulgar de tinta índigo */
+  .eb-range {
+    appearance: none;
+    height: 20px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .eb-range::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 999px;
+    background: var(--border);
+  }
+  .eb-range::-webkit-slider-thumb {
+    appearance: none;
+    margin-top: -7.5px;
+    height: 18px;
+    width: 18px;
+    border-radius: 999px;
+    border: 2px solid var(--background);
+    background: var(--primary);
+    box-shadow: var(--eb-shadow-soft);
+    transition: transform 0.2s var(--ease-out-soft);
+  }
+  .eb-range::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  .eb-range::-moz-range-track {
+    height: 3px;
+    border-radius: 999px;
+    background: var(--border);
+  }
+  .eb-range::-moz-range-thumb {
+    height: 14px;
+    width: 14px;
+    border-radius: 999px;
+    border: 2px solid var(--background);
+    background: var(--primary);
+    box-shadow: var(--eb-shadow-soft);
+  }
+  .eb-range:focus-visible {
+    outline: none;
+  }
+  .eb-range:focus-visible::-webkit-slider-thumb {
+    box-shadow:
+      0 0 0 3px oklch(0.545 0.222 277 / 0.35),
+      var(--eb-shadow-soft);
+  }
+  .eb-range:focus-visible::-moz-range-thumb {
+    box-shadow:
+      0 0 0 3px oklch(0.545 0.222 277 / 0.35),
+      var(--eb-shadow-soft);
+  }
+
   /* Post recién creado: entra con rise y un anillo índigo que se desvanece */
   .flash-created {
     opacity: 0;
