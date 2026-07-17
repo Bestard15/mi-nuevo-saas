@@ -1,0 +1,1 @@
+ALTER TABLE "project" ADD COLUMN "sso_secret" text DEFAULT md5(random()::text) || md5(random()::text) NOT NULL;

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo del widget de Echoboard</title>
+  <style>
+    body { font: 16px/1.6 system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+    input { padding: 8px; width: 100%; box-sizing: border-box; font-family: monospace; font-size: 12px; }
+    button { padding: 8px 16px; margin-top: 8px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Página de un cliente de Echoboard</h1>
+  <p>
+    Esta página simula la app de un cliente. El widget se cargó con
+    <code>&lt;script src="/widget.js" data-project="demo" defer&gt;</code> —
+    el botón flotante de abajo a la derecha abre el board en un popup.
+  </p>
+
+  <h2>Identificar al usuario (SSO)</h2>
+  <p>
+    Pega un JWT firmado con el <code>ssoSecret</code> del proyecto y pulsa
+    «Identificar»: los votos pasarán a cargar el MRR del usuario.
+  </p>
+  <input id="jwt" placeholder="eyJhbGciOiJIUzI1NiJ9..." />
+  <button id="identify" type="button">Identificar</button>
+
+  <script src="/widget.js" data-project="demo" defer></script>
+  <script>
+    document.getElementById("identify").addEventListener("click", function () {
+      var token = document.getElementById("jwt").value.trim();
+      if (token) window.Echoboard.identify(token);
+    });
+  </script>
+</body>
+</html>
