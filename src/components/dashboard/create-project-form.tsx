@@ -1,6 +1,6 @@
 import { createProject } from "@/actions/projects";
 import { ActionForm } from "@/components/action-form";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/submit-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
@@ -16,7 +16,7 @@ export function CreateProjectForm() {
       <CardContent>
         <ActionForm action={createProject} className="flex gap-2">
           <Input name="name" placeholder="Nombre del producto" required minLength={2} maxLength={60} />
-          <Button type="submit">Crear</Button>
+          <SubmitButton pendingText="Creando…">Crear</SubmitButton>
         </ActionForm>
       </CardContent>
     </Card>
