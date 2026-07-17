@@ -132,6 +132,10 @@
   .rise-4 { animation-delay: 0.3s; }
   .rise-5 { animation-delay: 0.38s; }
 
+  .float-soft {
+    animation: eb-float 7s ease-in-out infinite;
+  }
+
   /* Elevación al hover con sombra tintada (transform + shadow, nunca layout) */
   .hover-lift {
     transition:
@@ -151,11 +155,25 @@
   }
 }
 
+/* Flotación sutil para piezas decorativas (login ledger) */
+@keyframes eb-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-1deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+  .float-soft {
+    animation: none;
   }
   .hover-lift,
   .hover-lift:hover {
