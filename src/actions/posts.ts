@@ -98,10 +98,13 @@ export async function createPost(
 
   revalidatePath(`/p/${board.project.slug}`);
   revalidatePath(`/embed/${board.project.slug}`);
-  // The embed widget posts a redirectTo so the flow stays inside the iframe.
+  // The board and the embed post a redirectTo so the flow stays in place;
+  // the created id travels along so the UI can highlight the new post.
+  const redirectTo = safeRelativePath(formData.get("redirectTo"));
   redirect(
-    safeRelativePath(formData.get("redirectTo")) ??
-      `/p/${board.project.slug}/posts/${postId}`
+    redirectTo
+      ? `${redirectTo}${redirectTo.includes("?") ? "&" : "?"}created=${postId}`
+      : `/p/${board.project.slug}/posts/${postId}`
   );
 }
 

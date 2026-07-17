@@ -7,15 +7,21 @@ import { db } from "@/db";
 import { posts, projects, statuses, votes } from "@/db/schema";
 import { getViewerContext } from "@/lib/authz";
 import { resolveEndUser } from "@/lib/viewer";
-import { NewPostForm } from "@/components/board/new-post-form";
 import { PostCard } from "@/components/board/post-card";
+import { SuggestIdeaForm } from "@/components/board/suggest-idea-form";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ board?: string; sort?: string; status?: string; q?: string }>;
+type SearchParams = Promise<{
+  board?: string;
+  sort?: string;
+  status?: string;
+  q?: string;
+  created?: string;
+}>;
 type Params = Promise<{ slug: string }>;
 
 const SORTS = [
@@ -42,7 +48,7 @@ export default async function PublicProjectPage({
   searchParams: SearchParams;
 }) {
   const { slug } = await params;
-  const { board: boardSlug, sort = "top", status: statusId, q } = await searchParams;
+  const { board: boardSlug, sort = "top", status: statusId, q, created } = await searchParams;
 
   const project = await db.query.projects.findFirst({
     where: eq(projects.slug, slug),
@@ -249,6 +255,7 @@ export default async function PublicProjectPage({
                       key={post.id}
                       projectSlug={slug}
                       showRevenue={isMember}
+                      highlight={post.id === created}
                       post={{
                         id: post.id,
                         title: post.title,
@@ -266,7 +273,13 @@ export default async function PublicProjectPage({
             </section>
 
             <aside className="order-1 md:order-2">
-              <NewPostForm boardId={currentBoard.id} />
+              <SuggestIdeaForm
+                boardId={currentBoard.id}
+                // Tras publicar, de vuelta al board ordenado por nuevos: el
+                // post entra en la lista resaltado (?created= lo marca).
+                redirectTo={baseParams({ sort: "new", status: undefined, q: undefined })}
+                existingTitles={postRows.map((r) => r.post.title)}
+              />
             </aside>
           </div>
         </>

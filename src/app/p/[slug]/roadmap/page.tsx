@@ -7,11 +7,18 @@ import { db } from "@/db";
 import { boards, posts, projects, statuses } from "@/db/schema";
 import { getViewerContext } from "@/lib/authz";
 import { Badge } from "@/components/ui/badge";
+import { cn, formatMoney } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 // Categories that make up the public roadmap, in column order.
 const ROADMAP_CATEGORIES = ["planned", "in_progress", "shipped"] as const;
+
+const COLUMN_TAGLINES: Record<(typeof ROADMAP_CATEGORIES)[number], string> = {
+  planned: "Comprometido, aún sin empezar",
+  in_progress: "Manos a la obra ahora mismo",
+  shipped: "Ya en tus manos",
+};
 
 export async function generateMetadata({
   params,
@@ -71,54 +78,99 @@ export default async function RoadmapPage({
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">Roadmap de {project.name}</h1>
-          {project.isPrivate ? <Badge variant="outline">Privado</Badge> : null}
+        <div>
+          <p className="eyebrow">Roadmap público</p>
+          <div className="mt-2 flex items-center gap-3">
+            <h1 className="font-display text-3xl font-medium tracking-[-0.02em]">
+              {project.name}
+            </h1>
+            {project.isPrivate ? <Badge variant="outline">Privado</Badge> : null}
+          </div>
         </div>
         <nav className="flex gap-4 text-sm text-muted-foreground">
-          <Link href={`/p/${slug}`} className="hover:underline">
+          <Link
+            href={`/p/${slug}`}
+            className="transition-colors duration-150 hover:text-foreground"
+          >
             Feedback
           </Link>
           <span className="font-medium text-foreground">Roadmap</span>
-          <Link href={`/p/${slug}/changelog`} className="hover:underline">
+          <Link
+            href={`/p/${slug}/changelog`}
+            className="transition-colors duration-150 hover:text-foreground"
+          >
             Changelog
           </Link>
+          {isMember ? (
+            <Link
+              href={`/dashboard/${slug}`}
+              className="transition-colors duration-150 hover:text-foreground"
+            >
+              Dashboard
+            </Link>
+          ) : null}
         </nav>
       </header>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        {columns.map((status) => {
+      <div className="mt-12 grid gap-x-10 gap-y-12 md:grid-cols-3">
+        {columns.map((status, columnIndex) => {
           const items = byStatus.get(status.id) ?? [];
           return (
-            <section key={status.id} className="rounded-xl border bg-muted/20 p-3">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="inline-flex items-center gap-2 text-sm font-semibold">
+            <section
+              key={status.id}
+              className={cn("rise min-w-0", `rise-${columnIndex + 1}`)}
+              data-column={status.category}
+            >
+              {/* Cabecera de columna: hairline, punto de tinta y conteo en mono */}
+              <div className="border-b border-border/70 pb-3">
+                <h2 className="flex items-center gap-2 text-sm font-semibold">
                   <span
                     aria-hidden
                     className="h-2.5 w-2.5 rounded-full"
                     style={{ backgroundColor: status.color }}
                   />
                   {status.name}
+                  <span className="ml-auto font-mono text-xs font-medium tabular-nums text-muted-foreground">
+                    {items.length}
+                  </span>
                 </h2>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {items.length}
-                </span>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {COLUMN_TAGLINES[status.category as (typeof ROADMAP_CATEGORIES)[number]]}
+                </p>
               </div>
-              <div className="mt-3 flex flex-col gap-2">
+
+              <div className="mt-4 flex flex-col gap-3">
                 {items.length === 0 ? (
-                  <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
-                    Nada por aquí todavía
+                  <p className="rounded-xl border border-dashed px-4 py-8 text-center text-xs leading-relaxed text-muted-foreground">
+                    Nada por aquí todavía.
+                    <br />
+                    El equipo está tramando algo.
                   </p>
                 ) : (
                   items.map((post) => (
                     <Link
                       key={post.id}
                       href={`/p/${slug}/posts/${post.id}`}
-                      className="rounded-lg border bg-card p-3 text-sm shadow-sm transition-colors hover:bg-accent"
+                      className={cn(
+                        "group block rounded-xl border bg-card p-4 shadow-soft",
+                        "transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                        "hover:-translate-y-0.5 hover:border-ring/30 hover:shadow-lift",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                        "active:translate-y-0 active:scale-[0.99]"
+                      )}
                     >
-                      <p className="font-medium leading-snug">{post.title}</p>
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        ▲ {post.voteCount} {post.voteCount === 1 ? "voto" : "votos"}
+                      <p className="font-medium leading-snug transition-colors duration-150 group-hover:text-primary">
+                        {post.title}
+                      </p>
+                      <p className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="font-mono tabular-nums">
+                          ▲ {post.voteCount}
+                        </span>
+                        {isMember && Number(post.revenueImpact) > 0 ? (
+                          <span className="font-mono font-medium tabular-nums text-revenue">
+                            {formatMoney(post.revenueImpact)} MRR
+                          </span>
+                        ) : null}
                       </p>
                     </Link>
                   ))
